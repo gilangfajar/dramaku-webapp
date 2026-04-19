@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>DramaKu</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#0d0d0d;--surface:#181818;--surface2:#222;--border:#2a2a2a;--accent:#e53935;--accent2:#ff6f00;--text:#fff;--text2:#aaa;--text3:#555;--green:#4caf50;--gold:#ffc107;--radius:12px}
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
+    .page{display:none;padding-bottom:70px;animation:fadeUp 0.2s ease}
+    .page.active{display:block}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid var(--border);display:flex;z-index:100;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
+    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;cursor:pointer;transition:all .15s}
+    .nav-icon{font-size:22px;transition:transform .15s}
+    .nav-label{font-size:11px;color:var(--text3);font-weight:700;transition:color .15s}
+    .nav-item.active .nav-label{color:var(--accent)}
+    .nav-item.active .nav-icon{transform:scale(1.1)}
+    .nav-item:active .nav-icon{transform:scale(0.9)}
+    /* HOME */
+    .home-header{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px}
+    .home-logo{font-size:22px;font-weight:900;color:var(--accent)}
+    .home-search{width:36px;height:36px;background:var(--surface);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;border:1px solid var(--border)}
+    .search-bar-wrap{padding:0 16px 12px;display:none}
+    .search-bar-wrap.show{display:block}
+    .search-bar{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:'Nunito',sans-serif;outline:none}
+    .search-bar:focus{border-color:var(--accent)}
+    .section{padding:4px 16px 0}
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .section-title{font-size:16px;font-weight:800}
+    .section-more{font-size:12px;color:var(--accent);font-weight:700;cursor:pointer}
+    .drama-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+    .drama-scroll::-webkit-scrollbar{display:none}
+    .drama-card{flex-shrink:0;width:110px;cursor:pointer;transition:transform .15s}
+    .drama-card:active{transform:scale(0.96)}
+    .drama-thumb{width:110px;height:150px;border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:50px;position:relative;overflow:hidden;border:1px solid var(--border)}
+    .drama-thumb-overlay{position:absolute;bottom:0;left:0;right:0;height:50%;background:linear-gradient(transparent,rgba(0,0,0,.85))}
+    .drama-thumb-rating{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.75);color:var(--gold);font-size:10px;font-weight:800;padding:2px 5px;border-radius:5px}
+    .drama-thumb-eps{position:absolute;bottom:6px;left:6px;color:var(--text2);font-size:10px;font-weight:600}
+    .drama-card-title{font-size:12px;font-weight:700;margin-top:6px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .drama-card-genre{font-size:11px;color:var(--text3);margin-top:1px}
+    .banner{margin:0 16px 16px;border-radius:var(--radius);background:linear-gradient(135deg,#1a0000,#2d0a0a);padding:18px;position:relative;overflow:hidden;border:1px solid rgba(229,57,53,.2)}
+    .banner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(229,57,53,.2) 0%,transparent 60%)}
+    .banner-emoji{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:56px;opacity:.15}
+    .banner-tag{font-size:10px;font-weight:800;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+    .banner-title{font-size:20px;font-weight:900;line-height:1.2;position:relative;z-index:1}
+    .banner-sub{font-size:12px;color:var(--text2);margin-top:4px;position:relative;z-index:1}
+    .banner-btn{margin-top:12px;display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;border:none;font-family:'Nunito',sans-serif;position:relative;z-index:1}
+    /* LIBRARY */
+    .lib-header{padding:16px 16px 0;font-size:22px;font-weight:900}
+    .lib-tabs{display:flex;gap:10px;padding:12px 16px}
+    .lib-tab{padding:8px 20px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;border:none;font-family:'Nunito',sans-serif}
+    .lib-tab.active{background:var(--accent);color:white}
+    .lib-tab:not(.active){background:var(--surface);color:var(--text2)}
+    .lib-action{display:flex;justify-content:flex-end;padding:0 16px 10px}
+    .btn-clear{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+    .lib-list{padding:0 16px;display:flex;flex-direction:column;gap:10px}
+    .lib-item{background:var(--surface);border-radius:var(--radius);padding:12px;display:flex;gap:12px;cursor:pointer;transition:all .15s;border:1px solid var(--border)}
+    .lib-item:active{transform:scale(0.99)}
+    .lib-thumb{width:70px;height:95px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;border:1px solid var(--border)}
+    .lib-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between}
+    .lib-title{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+    .lib-meta{font-size:12px;color:var(--text2);margin-bottom:8px}
+    .lib-progress-bar{height:4px;border-radius:2px;background:var(--surface2);overflow:hidden;margin-bottom:4px}
+    .lib-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+    .lib-progress-pct{font-size:11px;color:var(--text3);text-align:right}
+    .lib-delete{width:32px;height:32px;background:rgba(229,57,53,.1);border:1px solid rgba(229,57,53,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;align-self:center;font-size:14px}
+    .lib-empty{text-align:center;padding:60px 20px;color:var(--text3)}
+    .lib-empty-icon{font-size:48px;margin-bottom:12px}
+    .lib-empty-text{font-size:14px;font-weight:600}
+    .lib-empty-sub{font-size:12px;margin-top:6px}
+    /* DETAIL */
+    .detail-nav{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
+    .back-btn{width:34px;height:34px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;flex-shrink:0}
+    .detail-nav-title{font-size:16px;font-weight:800}
+    .drama-banner{display:flex;gap:14px;padding:16px;background:linear-gradient(180deg,var(--surface) 0%,transparent 100%)}
+    .drama-poster{width:90px;height:125px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:42px;flex-shrink:0;border:1px solid var(--border)}
+    .drama-meta{flex:1}
+    .drama-meta-title{font-size:17px;font-weight:900;margin-bottom:6px;line-height:1.3}
+    .drama-meta-row{font-size:12px;color:var(--text2);margin-bottom:3px}
+    .drama-meta-rating{color:var(--gold);font-weight:800}
+    .drama-desc{padding:0 16px 14px;font-size:13px;color:var(--text2);line-height:1.6}
+    .episode-header{padding:10px 16px 8px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border)}
+    .ep-header-title{font-size:14px;font-weight:800}
+    .btn-all-eps{font-size:12px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;font-family:'Nunito',sans-serif}
+    .ep-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:0 16px 16px}
+    .ep-btn{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--surface)}
+    .ep-btn:active{transform:scale(0.93)}
+    .ep-btn.locked{opacity:0.6}
+    .ep-btn-num{font-size:14px;font-weight:800}
+    .ep-btn-dur{font-size:9px;color:var(--text3);margin-top:1px}
+    /* PROFILE */
+    .profile-top{display:flex;align-items:center;gap:14px;padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+    .profile-avatar{width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:white;flex-shrink:0}
+    .profile-name{font-size:18px;font-weight:900}
+    .profile-username{font-size:13px;color:var(--text2);margin-top:2px}
+    .vip-card{margin:14px 16px;background:linear-gradient(135deg,#1a0a00,#2d1500);border:1px solid rgba(255,193,7,.3);border-radius:var(--radius);padding:16px}
+    .vip-card-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .vip-star{width:36px;height:36px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+    .vip-card-label{font-size:16px;font-weight:900}
+    .vip-card-status{font-size:12px;color:var(--gold);font-weight:700;margin-top:2px}
+    .vip-card-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+    .vip-card-row{display:flex;justify-content:space-between;font-size:13px}
+    .vip-card-row-label{color:var(--text2)}
+    .vip-card-row-value{font-weight:700}
+    .vip-card-row-value.red{color:var(--accent)}
+    .btn-extend{width:100%;padding:13px;background:var(--gold);color:#000;border:none;border-radius:10px;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer}
+    .points-bar{margin:0 16px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:14px}
+    .points-num{flex:1}
+    .points-label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    .points-value{font-size:22px;font-weight:900}
+    .btn-claim-pts{padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap}
+    .profile-menu{padding:0 16px;display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+    .menu-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s}
+    .menu-item:active{background:var(--surface2)}
+    .menu-icon{width:36px;height:36px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .menu-label{font-size:14px;font-weight:700;flex:1}
+    .menu-arrow{color:var(--text3);font-size:14px}
+    .sub-page{display:none}
+    .sub-page.active{display:block}
+    .sub-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+    .sub-header-left{display:flex;align-items:center;gap:10px}
+    .sub-title{font-size:16px;font-weight:900}
+    .sub-subtitle{font-size:12px;color:var(--text2);margin-top:2px}
+    .btn-back-text{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+    .akun-card{margin:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .akun-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .akun-card-title{font-size:16px;font-weight:900}
+    .akun-vip-badge{background:rgba(255,193,7,.15);color:var(--gold);border:1px solid rgba(255,193,7,.3);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+    .akun-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
+    .akun-row:last-child{border-bottom:none}
+    .akun-row-label{color:var(--text2)}
+    .akun-row-value{font-weight:700;display:flex;align-items:center;gap:6px}
+    .copy-btn{background:var(--surface2);border:none;color:var(--text2);padding:3px 6px;border-radius:5px;font-size:12px;cursor:pointer}
+    .tx-card{margin:0 16px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+    .tx-title{font-size:16px;font-weight:900;margin-bottom:12px}
+    .tx-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+    .tx-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .tx-item-name{font-size:14px;font-weight:800}
+    .tx-item-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px}
+    .tx-badge-active{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3)}
+    .tx-badge-expired{background:var(--surface);color:var(--text3);border:1px solid var(--border)}
+    .tx-item-sub{font-size:12px;color:var(--text2);line-height:1.7}
+    .tx-item-price{font-size:15px;font-weight:900;color:var(--accent);margin-top:6px}
+    /* MODAL */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);z-index:200;align-items:flex-end}
+    .modal-overlay.show{display:flex}
+    .ep-modal{background:#1a1a1a;border-radius:20px 20px 0 0;width:100%;max-height:80vh;overflow-y:auto;animation:slideUp .25s ease}
+    @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .ep-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#1a1a1a}
+    .ep-modal-title{font-size:16px;font-weight:800}
+    .ep-modal-close{width:30px;height:30px;background:var(--surface2);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px}
+    .ep-modal-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:14px 16px 24px}
+    /* LOCK SHEET */
+    .lock-sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;align-items:flex-end}
+    .lock-sheet-overlay.show{display:flex}
+    .lock-sheet{background:#1a1a1a;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;text-align:center;animation:slideUp .25s ease}
+    .vip-plans{display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;padding-bottom:2px}
+    .vip-plans::-webkit-scrollbar{display:none}
+    .plan-item{flex-shrink:0;min-width:75px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s}
+    .plan-item.selected{border-color:var(--accent);background:rgba(229,57,53,.1)}
+    .plan-item:active{transform:scale(0.96)}
+    .plan-popular{font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;margin-bottom:4px;min-height:12px}
+    .plan-dur{font-size:13px;font-weight:800;margin-bottom:3px}
+    .plan-price{font-size:14px;font-weight:900;color:var(--accent)}
+    .btn-upgrade{width:100%;padding:15px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-size:16px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;margin-bottom:10px}
+    .btn-cancel-lock{width:100%;padding:10px;background:transparent;color:var(--text3);border:none;font-size:14px;cursor:pointer;font-family:'Nunito',sans-serif}
+    /* TOAST */
+    .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:white;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:700;z-index:500;opacity:0;transition:all .25s;white-space:nowrap}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  </style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="home-header">
+    <div class="home-logo">DramaKu</div>
+    <div class="home-search" onclick="toggleSearch()">🔍</div>
+  </div>
+  <div class="search-bar-wrap" id="searchBarWrap">
+    <input class="search-bar" type="text" placeholder="Cari drama..." oninput="searchDramas(this.value)" id="searchInput"/>
+  </div>
+  <div class="banner" onclick="showDetail('crash_landing')">
+    <div class="banner-emoji">🛬</div>
+    <div style="position:relative;z-index:1">
+      <div class="banner-tag">🔥 TRENDING</div>
+      <div class="banner-title">Crash Landing<br>on You</div>
+      <div class="banner-sub">⭐ 9.1 · 16 Episode · Korea</div>
+      <button class="banner-btn">▶ Tonton Sekarang</button>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header"><div class="section-title">Drama Populer</div><div class="section-more" onclick="switchPage('library')">Lihat Semua</div></div>
+    <div class="drama-scroll" id="popularScroll"></div>
+  </div>
+  <div class="section" style="margin-top:18px">
+    <div class="section-header"><div class="section-title">Baru Ditambahkan</div></div>
+    <div class="drama-scroll" id="newScroll"></div>
+  </div>
+  <div id="searchResults" style="display:none;padding:0 16px;margin-top:10px"></div>
+</div>
+
+<!-- DETAIL -->
+<div class="page" id="page-detail">
+  <div class="detail-nav">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div class="detail-nav-title" id="detailNavTitle"></div>
+  </div>
+  <div class="drama-banner">
+    <div class="drama-poster" id="detailPoster"></div>
+    <div class="drama-meta">
+      <div class="drama-meta-title" id="detailTitle"></div>
+      <div class="drama-meta-row" id="detailCountry"></div>
+      <div class="drama-meta-row" id="detailGenre"></div>
+      <div class="drama-meta-row drama-meta-rating" id="detailRating"></div>
+      <div class="drama-meta-row" id="detailFree" style="color:var(--green);font-weight:700;margin-top:4px"></div>
+    </div>
+  </div>
+  <div class="drama-desc" id="detailDesc"></div>
+  <div class="episode-header">
+    <div class="ep-header-title" id="epHeaderTitle"></div>
+    <button class="btn-all-eps" onclick="showAllEps()">Semua Episode ›</button>
+  </div>
+  <div class="ep-grid" id="epGrid"></div>
+</div>
+
+<!-- LIBRARY -->
+<div class="page" id="page-library">
+  <div class="lib-header">Library</div>
+  <div class="lib-tabs">
+    <button class="lib-tab active" onclick="switchLibTab('history',this)">History</button>
+    <button class="lib-tab" onclick="switchLibTab('bookmark',this)">Bookmark</button>
+  </div>
+  <div class="lib-action"><button class="btn-clear" onclick="clearLib()">🗑️ Clear All</button></div>
+  <div class="lib-list" id="libList"></div>
+</div>
+
+<!-- PROFILE -->
+<div class="page" id="page-profile">
+  <div id="profileMain">
+    <div class="profile-top">
+      <div class="profile-avatar" id="profileAvatar">G</div>
+      <div>
+        <div class="profile-name" id="profileName">Pengguna</div>
+        <div class="profile-username" id="profileUsername">@username</div>
+      </div>
+    </div>
+    <div class="vip-card">
+      <div class="vip-card-top">
+        <div class="vip-star">⭐</div>
+        <div><div class="vip-card-label">VIP Member</div><div class="vip-card-status" id="vipCardStatus">Status Aktif</div></div>
+      </div>
+      <div class="vip-card-rows">
+        <div class="vip-card-row"><span class="vip-card-row-label">Berakhir pada</span><span class="vip-card-row-value" id="vipExpiry">—</span></div>
+        <div class="vip-card-row"><span class="vip-card-row-label">Sisa waktu</span><span class="vip-card-row-value red" id="vipRemaining">—</span></div>
+      </div>
+      <button class="btn-extend" onclick="showLockSheet()">Perpanjang VIP</button>
+    </div>
+    <div class="points-bar">
+      <div class="points-num">
+        <div class="points-label">Total Points</div>
+        <div class="points-value" id="profilePoints">0</div>
+      </div>
+      <button class="btn-claim-pts" onclick="switchPage('points')">Claim Points</button>
+    </div>
+    <div class="profile-menu">
+      <div class="menu-item" onclick="showSubPage('akun')"><div class="menu-icon">👤</div><div class="menu-label">Akun</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="switchPage('points')"><div class="menu-icon">💰</div><div class="menu-label">Points</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="showSubPage('affiliate')"><div class="menu-icon">🤝</div><div class="menu-label">Program Affiliate</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="showToast('🚧 Segera hadir!')"><div class="menu-icon">❓</div><div class="menu-label">Bantuan</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="showToast('🚧 Segera hadir!')"><div class="menu-icon">💬</div><div class="menu-label">Grup Diskusi DramaKu</div><div class="menu-arrow">›</div></div>
+    </div>
+  </div>
+
+  <!-- Sub: Akun -->
+  <div class="sub-page" id="subAkun">
+    <div class="sub-header">
+      <div class="sub-header-left">
+        <div class="profile-avatar" style="width:40px;height:40px;font-size:16px" id="subAkunAvatar">G</div>
+        <div><div class="sub-title">Akun</div><div class="sub-subtitle">Detail akun & riwayat VIP</div></div>
+      </div>
+      <button class="btn-back-text" onclick="hideSubPage()">Kembali</button>
+    </div>
+    <div class="akun-card">
+      <div class="akun-card-header"><div class="akun-card-title">Detail Akun</div><div class="akun-vip-badge" id="akunVipBadge">Free</div></div>
+      <div class="akun-row"><span class="akun-row-label">Nama</span><span class="akun-row-value" id="akunName">—</span></div>
+      <div class="akun-row"><span class="akun-row-label">Username</span><span class="akun-row-value" id="akunUsername">—</span></div>
+      <div class="akun-row"><span class="akun-row-label">ID Telegram</span><span class="akun-row-value"><span id="akunId">—</span><button class="copy-btn" onclick="copyId()">📋</button></span></div>
+      <div class="akun-row"><span class="akun-row-label">VIP Berakhir</span><span class="akun-row-value" id="akunVipExpiry">—</span></div>
+    </div>
+    <div class="tx-card">
+      <div class="tx-title">History Transaksi VIP</div>
+      <div id="txHistory"><div style="text-align:center;color:var(--text3);padding:20px;font-size:13px">Belum ada transaksi</div></div>
+    </div>
+  </div>
+
+  <!-- Sub: Affiliate -->
+  <div class="sub-page" id="subAffiliate">
+    <div class="sub-header">
+      <button style="display:flex;align-items:center;gap:4px;color:var(--accent);background:none;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif" onclick="hideSubPage()">‹ Kembali</button>
+    </div>
+    <div style="padding:0 16px 16px">
+      <div style="font-size:22px;font-weight:900;margin-bottom:4px">Program Affiliate</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px">Referral bersifat permanen, kamu akan mendapat komisi di setiap pembeliannya</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px"><div style="font-size:12px;color:var(--text2)">Total Referral</div><div style="font-size:22px;font-weight:900;margin-top:4px" id="affTotalRef">0</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px"><div style="font-size:12px;color:var(--text2)">Komisi Rate</div><div style="font-size:22px;font-weight:900;color:var(--green);margin-top:4px">25%</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px"><div style="font-size:12px;color:var(--text2)">Total Pendapatan</div><div style="font-size:20px;font-weight:900;color:var(--green);margin-top:4px">Rp 0</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px"><div style="font-size:12px;color:var(--text2)">Referral Aktif</div><div style="font-size:22px;font-weight:900;color:#4da6ff;margin-top:4px">0</div></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">Link Referral Kamu</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);margin-bottom:10px;word-break:break-all" id="refLink">https://t.me/DramaKuStreamBot?start=...</div>
+        <div style="display:flex;gap:8px">
+          <button style="flex:1;padding:10px;background:#2196f3;color:white;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif" onclick="copyRefLink()">📋 Salin Link</button>
+          <button style="flex:1;padding:10px;background:#0088cc;color:white;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif" onclick="shareRefLink()">✈️ Share</button>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
+        <div style="font-size:14px;font-weight:800;margin-bottom:12px">Dapatkan Hingga 50% Komisi</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;background:#2196f3;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0">1</div><div><div style="font-size:13px;font-weight:700">Level 1</div><div style="font-size:12px;color:var(--text3)">1000 Referral = 30% Komisi</div></div></div>
+          <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;background:#2196f3;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0">2</div><div><div style="font-size:13px;font-weight:700">Level 2</div><div style="font-size:12px;color:var(--text3)">2500 Referral = 35% Komisi</div></div></div>
+          <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;background:#2196f3;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0">3</div><div><div style="font-size:13px;font-weight:700">Level 3</div><div style="font-size:12px;color:var(--text3)">5000 Referral = 40% Komisi</div></div></div>
+          <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;background:#2196f3;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0">4</div><div><div style="font-size:13px;font-weight:700">Level 4</div><div style="font-size:12px;color:var(--text3)">7500 Referral = 45% Komisi</div></div></div>
+          <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;background:#4caf50;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0">5</div><div><div style="font-size:13px;font-weight:700">Level 5</div><div style="font-size:12px;color:var(--text3)">10.000 Referral = 50% Komisi</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- POINTS -->
+<div class="page" id="page-points">
+  <div style="background:linear-gradient(135deg,#1a0000,#0a0a2a);padding:24px 16px 20px;position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(229,57,53,.2) 0%,transparent 60%)"></div>
+    <div style="position:relative;z-index:1">
+      <div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Total Points</div>
+      <div style="font-size:44px;font-weight:900" id="ptsTotal">0</div>
+      <div style="display:flex;gap:20px;margin-top:12px">
+        <div><div style="font-size:11px;color:var(--text3)">Dibelanjakan</div><div style="font-size:16px;font-weight:800;color:var(--accent2)" id="ptsSpent">0</div></div>
+        <div><div style="font-size:11px;color:var(--text3)">Streak</div><div style="font-size:16px;font-weight:800;color:var(--gold)" id="ptsStreak">0/7 🔥</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;border-bottom:1px solid var(--border)">
+    <div class="pts-tab-item active" id="ptab-claim" onclick="switchPtsTab('claim',this)" style="flex:1;padding:12px;text-align:center;font-size:13px;font-weight:800;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent)">Claim Harian</div>
+    <div class="pts-tab-item" id="ptab-redeem" onclick="switchPtsTab('redeem',this)" style="flex:1;padding:12px;text-align:center;font-size:13px;font-weight:800;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3)">Tukar VIP</div>
+    <div class="pts-tab-item" id="ptab-history" onclick="switchPtsTab('history',this)" style="flex:1;padding:12px;text-align:center;font-size:13px;font-weight:800;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3)">Riwayat</div>
+  </div>
+  <div id="pts-claim" style="padding:16px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px">
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px">🎁 Claim Harian 7 Hari</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Claim setiap hari selama 7 hari untuk Mendapatkan Total 270 Points.</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:14px" id="streakBoxes"></div>
+      <button id="btnClaim" style="width:100%;padding:14px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-size:15px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer" onclick="claimDaily()">CLAIM</button>
+    </div>
+  </div>
+  <div id="pts-redeem" style="display:none;padding:16px">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Tukar poin kamu dengan VIP!</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div onclick="redeemVIP(1,100)" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer"><div><div style="font-size:14px;font-weight:800">VIP 1 Hari</div><div style="font-size:12px;color:var(--text3)">Akses semua episode</div></div><div style="font-size:16px;font-weight:900;color:var(--accent)">100 Poin</div></div>
+      <div onclick="redeemVIP(3,250)" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer"><div><div style="font-size:14px;font-weight:800">VIP 3 Hari</div><div style="font-size:12px;color:var(--text3)">Hemat 17%</div></div><div style="font-size:16px;font-weight:900;color:var(--accent)">250 Poin</div></div>
+      <div onclick="redeemVIP(7,500)" style="background:rgba(229,57,53,.08);border:2px solid var(--accent);border-radius:var(--radius);padding:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer"><div><div style="font-size:14px;font-weight:800">VIP 7 Hari ⭐</div><div style="font-size:12px;color:var(--accent)">Paling Populer</div></div><div style="font-size:16px;font-weight:900;color:var(--accent)">500 Poin</div></div>
+      <div onclick="redeemVIP(30,1500)" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer"><div><div style="font-size:14px;font-weight:800">VIP 30 Hari 💎</div><div style="font-size:12px;color:var(--text3)">Best Value</div></div><div style="font-size:16px;font-weight:900;color:var(--accent)">1500 Poin</div></div>
+    </div>
+  </div>
+  <div id="pts-history" style="display:none;padding:16px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:12px">HISTORY POINTS</div>
+    <div id="ptsHistoryList"><div style="text-align:center;color:var(--text3);font-size:13px;padding:20px">No transactions yet.</div></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="switchPage('home')" id="nav-home"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+  <div class="nav-item" onclick="switchPage('library')" id="nav-library"><div class="nav-icon">📖</div><div class="nav-label">Library</div></div>
+  <div class="nav-item" onclick="switchPage('profile')" id="nav-profile"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+</div>
+
+<!-- ALL EPS MODAL -->
+<div class="modal-overlay" id="modalAllEps" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="ep-modal">
+    <div class="ep-modal-header">
+      <div class="ep-modal-title" id="modalEpsTitle">Semua Episode</div>
+      <div class="ep-modal-close" onclick="document.getElementById('modalAllEps').classList.remove('show')">✕</div>
+    </div>
+    <div class="ep-modal-grid" id="modalEpsGrid"></div>
+  </div>
+</div>
+
+<!-- LOCK SHEET -->
+<div class="lock-sheet-overlay" id="lockSheet" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="lock-sheet">
+    <div style="font-size:48px;margin-bottom:12px">🔒</div>
+    <div style="font-size:20px;font-weight:900;margin-bottom:8px">Episode VIP</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px">Episode ini hanya untuk member VIP.<br>Upgrade sekarang mulai <strong>Rp2.000/hari</strong>!</div>
+    <div class="vip-plans" id="vipPlans"></div>
+    <button class="btn-upgrade" id="btnUpgrade" onclick="doUpgrade()">💎 Upgrade VIP</button>
+    <button class="btn-cancel-lock" onclick="document.getElementById('lockSheet').classList.remove('show')">Nanti saja</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DRAMAS=[{id:"crash_landing",title:"Crash Landing on You",genre:"Romance, Drama",country:"Korea",emoji:"🛬",desc:"Seorang wanita konglomerat Korea Selatan mendarat darurat di Korea Utara dan jatuh cinta dengan seorang perwira militer.",episodes:16,rating:9.1},{id:"goblin",title:"Goblin",genre:"Fantasy, Romance",country:"Korea",emoji:"🌿",desc:"Goblin yang hidup ribuan tahun mencari pengantin untuk mengakhiri hidupnya.",episodes:16,rating:9.3},{id:"boys_over_flowers",title:"Boys Over Flowers",genre:"Romance, Drama",country:"Korea",emoji:"🌸",desc:"Gadis biasa masuk sekolah elite dan harus menghadapi perundungan dari F4.",episodes:25,rating:8.7},{id:"my_love",title:"My Love from the Star",genre:"Fantasy, Romance",country:"Korea",emoji:"⭐",desc:"Alien 400 tahun bertemu aktris ternama mirip cintanya di masa lalu.",episodes:21,rating:8.9},{id:"itaewon_class",title:"Itaewon Class",genre:"Drama, Business",country:"Korea",emoji:"🍺",desc:"Pria muda membalas dendam pada konglomerat yang menghancurkan hidupnya.",episodes:16,rating:8.8}];
+const FREE_LIMIT=6;
+const PLANS=[{id:"1day",dur:"1 Hari",price:"Rp2.000",popular:""},{id:"3day",dur:"3 Hari",price:"Rp5.000",popular:"HEMAT"},{id:"7day",dur:"7 Hari",price:"Rp10.000",popular:"⭐ POPULER"},{id:"30day",dur:"30 Hari",price:"Rp30.000",popular:"BEST VALUE"}];
+let selectedPlan="7day",currentDrama=null,prevPage="home",libTab="history";
+let watchHistory=JSON.parse(localStorage.getItem("wh")||"[]");
+let bookmarks=JSON.parse(localStorage.getItem("bm")||"[]");
+let isVIP=false,tgUser=null,userId=null;
+let ptsData={points:0,spent:0,streak:0,claimed_today:false,logs:[]};
+
+const tg=window.Telegram?.WebApp;
+if(tg){
+  tg.ready();tg.expand();
+  tg.setHeaderColor?.("#0d0d0d");tg.setBackgroundColor?.("#0d0d0d");
+  tgUser=tg.initDataUnsafe?.user;
+  if(tgUser){
+    userId=tgUser.id;
+    const init=(tgUser.first_name||"U")[0].toUpperCase();
+    ["profileAvatar","subAkunAvatar"].forEach(id=>document.getElementById(id).textContent=init);
+    const fullName=tgUser.first_name+(tgUser.last_name?" "+tgUser.last_name:"");
+    document.getElementById("profileName").textContent=fullName;
+    document.getElementById("profileUsername").textContent=tgUser.username?"@"+tgUser.username:"Telegram User";
+    document.getElementById("akunName").textContent=fullName;
+    document.getElementById("akunUsername").textContent=tgUser.username?"@"+tgUser.username:"—";
+    document.getElementById("akunId").textContent=tgUser.id;
+    document.getElementById("refLink").textContent=`https://t.me/DramaKuStreamBot?start=${tgUser.id}`;
+  }
+}
+
+function switchPage(name){
+  if(name!=="detail")prevPage=document.querySelector(".page.active")?.id?.replace("page-","")||"home";
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("page-"+name)?.classList.add("active");
+  document.getElementById("nav-"+name)?.classList.add("active");
+  hideSubPage();
+  if(name==="profile")renderProfile();
+  if(name==="library")renderLib();
+  if(name==="points")loadPoints();
+}
+
+function goBack(){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("page-"+prevPage)?.classList.add("active");
+  document.getElementById("nav-"+prevPage)?.classList.add("active");
+}
+
+function showSubPage(name){
+  document.getElementById("profileMain").style.display="none";
+  document.querySelectorAll(".sub-page").forEach(s=>s.classList.remove("active"));
+  const id="sub"+name.charAt(0).toUpperCase()+name.slice(1);
+  document.getElementById(id)?.classList.add("active");
+}
+
+function hideSubPage(){
+  document.getElementById("profileMain").style.display="block";
+  document.querySelectorAll(".sub-page").forEach(s=>s.classList.remove("active"));
+}
+
+function renderDramaCard(d){
+  return`<div class="drama-card" onclick="showDetail('${d.id}')"><div class="drama-thumb">${d.emoji}<div class="drama-thumb-overlay"></div><div class="drama-thumb-rating">⭐${d.rating}</div><div class="drama-thumb-eps">${d.episodes} ep</div></div><div class="drama-card-title">${d.title}</div><div class="drama-card-genre">${d.genre.split(",")[0]}</div></div>`;
+}
+
+function renderHome(){
+  document.getElementById("popularScroll").innerHTML=DRAMAS.map(renderDramaCard).join("");
+  document.getElementById("newScroll").innerHTML=[...DRAMAS].reverse().map(renderDramaCard).join("");
+}
+
+function showDetail(id){
+  prevPage=document.querySelector(".page.active")?.id?.replace("page-","")||"home";
+  currentDrama=DRAMAS.find(d=>d.id===id);
+  if(!currentDrama)return;
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById("page-detail").classList.add("active");
+  document.getElementById("detailNavTitle").textContent=currentDrama.title;
+  document.getElementById("detailPoster").textContent=currentDrama.emoji;
+  document.getElementById("detailTitle").textContent=currentDrama.title;
+  document.getElementById("detailCountry").textContent="🌍 "+currentDrama.country;
+  document.getElementById("detailGenre").textContent="🎭 "+currentDrama.genre;
+  document.getElementById("detailRating").textContent="⭐ "+currentDrama.rating+"/10";
+  document.getElementById("detailFree").textContent=`✅ Episode 1–${FREE_LIMIT} Gratis  🔒 Episode ${FREE_LIMIT+1}+ VIP`;
+  document.getElementById("detailDesc").textContent=currentDrama.desc;
+  document.getElementById("epHeaderTitle").textContent=`Semua Episode (${currentDrama.episodes})`;
+  renderEpGrid("epGrid",currentDrama.episodes,12);
+}
+
+function renderEpGrid(containerId,total,limit){
+  const el=document.getElementById(containerId);
+  const count=limit?Math.min(total,limit):total;
+  el.innerHTML=Array.from({length:count},(_,i)=>{
+    const ep=i+1,locked=ep>FREE_LIMIT&&!isVIP;
+    return`<div class="ep-btn${locked?" locked":""}" onclick="playEp(${ep})"><div class="ep-btn-num">${ep}</div><div class="ep-btn-dur">${locked?"🔒":"▶"}</div></div>`;
+  }).join("");
+}
+
+function playEp(ep){
+  if(!currentDrama)return;
+  if(ep>FREE_LIMIT&&!isVIP){showLockSheet();return;}
+  const entry={id:currentDrama.id,title:currentDrama.title,emoji:currentDrama.emoji,ep,total:currentDrama.episodes,time:Date.now()};
+  watchHistory=watchHistory.filter(h=>h.id!==entry.id);
+  watchHistory.unshift(entry);
+  localStorage.setItem("wh",JSON.stringify(watchHistory.slice(0,30)));
+  showToast(`▶ Membuka Episode ${ep}...`);
+  if(tg)tg.sendData(JSON.stringify({action:"play",drama_id:currentDrama.id,episode:ep}));
+}
+
+function showAllEps(){
+  if(!currentDrama)return;
+  document.getElementById("modalEpsTitle").textContent=`Semua Episode (${currentDrama.episodes})`;
+  renderEpGrid("modalEpsGrid",currentDrama.episodes,0);
+  document.getElementById("modalAllEps").classList.add("show");
+}
+
+function switchLibTab(tab,el){
+  libTab=tab;
+  document.querySelectorAll(".lib-tab").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");
+  renderLib();
+}
+
+function renderLib(){
+  const list=libTab==="history"?watchHistory:bookmarks;
+  const el=document.getElementById("libList");
+  if(!list.length){
+    el.innerHTML=`<div class="lib-empty"><div class="lib-empty-icon">${libTab==="history"?"📖":"🔖"}</div><div class="lib-empty-text">${libTab==="history"?"Belum ada riwayat":"Belum ada bookmark"}</div><div class="lib-empty-sub">Mulai tonton drama favoritmu!</div></div>`;
+    return;
+  }
+  el.innerHTML=list.map(h=>{
+    const pct=h.total?Math.round(h.ep/h.total*100):0;
+    return`<div class="lib-item" onclick="showDetail('${h.id}')"><div class="lib-thumb">${h.emoji}</div><div class="lib-info"><div><div class="lib-title">${h.title}</div><div class="lib-meta">${h.ep}/${h.total} episode · Terakhir eps ${h.ep}</div></div><div><div class="lib-progress-bar"><div class="lib-progress-fill" style="width:${pct}%"></div></div><div class="lib-progress-pct">${pct}%</div></div></div><div class="lib-delete" onclick="event.stopPropagation();deleteLib('${h.id}')">🗑️</div></div>`;
+  }).join("");
+}
+
+function deleteLib(id){
+  if(libTab==="history"){watchHistory=watchHistory.filter(h=>h.id!==id);localStorage.setItem("wh",JSON.stringify(watchHistory));}
+  else{bookmarks=bookmarks.filter(b=>b.id!==id);localStorage.setItem("bm",JSON.stringify(bookmarks));}
+  renderLib();
+}
+
+function clearLib(){
+  if(!confirm("Hapus semua?"))return;
+  if(libTab==="history"){watchHistory=[];localStorage.removeItem("wh");}
+  else{bookmarks=[];localStorage.removeItem("bm");}
+  renderLib();
+}
+
+function renderProfile(){
+  document.getElementById("profilePoints").textContent=ptsData.points.toLocaleString("id-ID");
+}
+
+function copyId(){navigator.clipboard?.writeText(document.getElementById("akunId").textContent);showToast("✅ ID disalin!");}
+function copyRefLink(){navigator.clipboard?.writeText(document.getElementById("refLink").textContent);showToast("✅ Link disalin!");}
+function shareRefLink(){
+  const link=document.getElementById("refLink").textContent;
+  if(tg)tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Tonton drama gratis di DramaKu! 🎬")}`);
+}
+
+function showLockSheet(){
+  document.getElementById("vipPlans").innerHTML=PLANS.map(p=>`<div class="plan-item${p.id===selectedPlan?" selected":""}" onclick="selectPlan('${p.id}')"><div class="plan-popular">${p.popular||"&nbsp;"}</div><div class="plan-dur">${p.dur}</div><div class="plan-price">${p.price}</div></div>`).join("");
+  updateUpgradeBtn();
+  document.getElementById("lockSheet").classList.add("show");
+}
+
+function selectPlan(id){
+  selectedPlan=id;
+  document.querySelectorAll(".plan-item").forEach((el,i)=>el.classList.toggle("selected",PLANS[i].id===id));
+  updateUpgradeBtn();
+}
+
+function updateUpgradeBtn(){
+  const p=PLANS.find(x=>x.id===selectedPlan);
+  document.getElementById("btnUpgrade").textContent=`💎 Upgrade VIP — ${p.price}`;
+}
+
+function doUpgrade(){
+  document.getElementById("lockSheet").classList.remove("show");
+  showToast("💳 Mengarahkan ke pembayaran...");
+  if(tg)tg.sendData(JSON.stringify({action:"buy_vip",package:selectedPlan}));
+}
+
+function toggleSearch(){
+  const wrap=document.getElementById("searchBarWrap");
+  const res=document.getElementById("searchResults");
+  wrap.classList.toggle("show");
+  if(!wrap.classList.contains("show")){res.style.display="none";document.getElementById("searchInput").value="";}
+  else document.getElementById("searchInput").focus();
+}
+
+function searchDramas(q){
+  const res=document.getElementById("searchResults");
+  if(!q.trim()){res.style.display="none";return;}
+  const found=DRAMAS.filter(d=>d.title.toLowerCase().includes(q.toLowerCase())||d.genre.toLowerCase().includes(q.toLowerCase()));
+  res.style.display="block";
+  res.innerHTML=found.length?`<div class="drama-scroll">${found.map(renderDramaCard).join("")}</div>`:`<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Tidak ada hasil</div>`;
+}
+
+async function loadPoints(){
+  if(userId){
+    try{
+      const res=await fetch(`http://localhost:5000/api/points/${userId}`,{headers:{"X-API-Key":"dramaku-admin-2024"}});
+      if(res.ok)ptsData=await res.json();
+    }catch(e){}
+  }
+  renderPointsUI();
+  document.getElementById("profilePoints").textContent=ptsData.points.toLocaleString("id-ID");
+}
+
+function renderPointsUI(){
+  document.getElementById("ptsTotal").textContent=ptsData.points.toLocaleString("id-ID");
+  document.getElementById("ptsSpent").textContent=ptsData.spent.toLocaleString("id-ID");
+  document.getElementById("ptsStreak").textContent=ptsData.streak+"/7 🔥";
+  const pts_map={1:10,2:20,3:30,4:40,5:50,6:60,7:100};
+  document.getElementById("streakBoxes").innerHTML=Array.from({length:7},(_,i)=>{
+    const day=i+1,done=day<=ptsData.streak,isNext=day===ptsData.streak+(ptsData.claimed_today?0:1);
+    const bg=done?"background:rgba(229,57,53,.3);border:1px solid var(--accent)":isNext?"background:rgba(229,57,53,.1);border:1px dashed var(--accent)":"background:var(--surface2);border:1px solid var(--border)";
+    return`<div style="${bg};border-radius:8px;padding:7px 2px;text-align:center"><div style="font-size:13px">${done?"✅":isNext?"🎁":"⬜"}</div><div style="font-size:9px;color:var(--text3);margin-top:1px">H${day}</div><div style="font-size:11px;font-weight:800;color:var(--accent)">${pts_map[day]}</div></div>`;
+  }).join("");
+  const btn=document.getElementById("btnClaim");
+  if(ptsData.claimed_today){btn.textContent="✅ Sudah Claim";btn.style.background="var(--surface2)";btn.style.color="var(--text3)";btn.disabled=true;}
+  else{btn.textContent="CLAIM";btn.style.background="var(--accent)";btn.style.color="white";btn.disabled=false;}
+  const hist=document.getElementById("ptsHistoryList");
+  if(!ptsData.logs?.length){hist.innerHTML=`<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px">No transactions yet.</div>`;}
+  else hist.innerHTML=ptsData.logs.map(l=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:8px"><div><div style="font-size:13px;font-weight:700">${l.description||l.type}</div><div style="font-size:11px;color:var(--text3)">${new Date(l.created_at).toLocaleDateString("id-ID")}</div></div><div style="font-size:15px;font-weight:900;color:${l.amount>0?"var(--green)":"var(--accent2)"}">${l.amount>0?"+":""}${l.amount}</div></div>`).join("");
+}
+
+function switchPtsTab(tab,el){
+  ["claim","redeem","history"].forEach(t=>document.getElementById("pts-"+t).style.display=t===tab?"block":"none");
+  document.querySelectorAll(".pts-tab-item").forEach(t=>{t.style.borderBottomColor="transparent";t.style.color="var(--text3)";});
+  el.style.borderBottomColor="var(--accent)";el.style.color="var(--accent)";
+}
+
+async function claimDaily(){
+  if(!userId){showToast("⚠️ Buka via bot Telegram ya!");return;}
+  const btn=document.getElementById("btnClaim");
+  btn.disabled=true;btn.textContent="⏳...";
+  try{
+    const res=await fetch(`http://localhost:5000/api/points/${userId}/claim`,{method:"POST",headers:{"X-API-Key":"dramaku-admin-2024"}});
+    const data=await res.json();
+    showToast(data.success?`🎉 ${data.message}`:`ℹ️ ${data.message}`);
+    await loadPoints();
+  }catch(e){showToast("⚠️ Gagal terhubung");btn.disabled=false;btn.textContent="CLAIM";}
+}
+
+async function redeemVIP(days,cost){
+  if(!userId){showToast("⚠️ Buka via bot Telegram ya!");return;}
+  if(ptsData.points<cost){showToast(`❌ Butuh ${cost} poin!`);return;}
+  if(!confirm(`Tukar ${cost} poin untuk VIP ${days} hari?`))return;
+  try{
+    const res=await fetch(`http://localhost:5000/api/points/${userId}/redeem`,{method:"POST",headers:{"Content-Type":"application/json","X-API-Key":"dramaku-admin-2024"},body:JSON.stringify({days})});
+    const data=await res.json();
+    showToast(data.success?`🎉 ${data.message}`:`❌ ${data.message}`);
+    if(data.success)await loadPoints();
+  }catch(e){showToast("⚠️ Gagal terhubung");}
+}
+
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),2500);
+}
+
+renderHome();
+renderLib();
+</script>
+</body>
+</html>
